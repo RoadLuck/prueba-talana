@@ -1,15 +1,18 @@
 import string
 import random
+from django.conf import settings
 
 from rest_framework.viewsets import ModelViewSet, ViewSet
+from random import randrange
 
+from rest_framework.decorators import api_view
 from rest_framework.views import APIView
 from rest_framework import status, permissions,filters
 from rest_framework.response import Response
+from django.template.loader import get_template
 
-
+from django.core import mail
 from django.core.mail import EmailMultiAlternatives
-
 
 from accounts.api import serializers
 from accounts.models import Token, User
@@ -55,13 +58,43 @@ class UserCreateApiView(ModelViewSet):
         token_gen = random_token(99)
         token = Token(user=user, token= token_gen)
         token.save()
-        #TODO: Hacerlo con Celerys.
+        #TODO: Integrar Celerys.
         send_email(serializer['email'].value, serializer['first_name'].value, serializer['last_name'].value, token_gen)
         headers = self.get_success_headers(serializer.data)
-        return Response({"completado":"Verifique su cuenta en el correo electronico.", "user":serializer.data}, status=status.HTTP_201_CREATED, headers=headers)
-    
+        return Response({"completado":"Verifique su cuenta en el correo electronico.", "user":serializer.data, "token": token_gen}, status=status.HTTP_201_CREATED, headers=headers)
+ 
 
+@api_view(['POST'])
+def verify_account(request):
+    if request.method == 'POST':
+        token = request.META['HTTP_X_TOKEN']
+        if Token.objects.filter(token=token).exists():
+            password = request.data['password']
+            serializer = serializers.UsersRegisterSerializer(data=request.data)  
+            serializer.is_valid(raise_exception=True)
+            user = Token.objects.get(token=token).user
+            user.verificate = True
+            user.set_password(password)
+            user.save()
+            token_obj = Token.objects.get(token=token)
+            token_obj.delete()
+            return Response({"message": "Tu cuenta ha sido activada con exito."})
+        return Response({"error": "Token Invalido"})
+    return Response({"error": "Metodo GET no admitido."})
 
+@api_view(['GET'])
+def generate_winner(request):
+    if request.method == 'GET':
+        switch = False
+        users_count = User.objects.filter(verificate=True).count()
+        number = randrange(users_count)
+        if User.objects.filter(id=number).exists():
+            user = User.objects.get(id=number)
+            email = user.email
+            return Response({"user": email})
+        else:
+            return Response({"message": "Al Agua"})
+    return Response({"message": "Generador de ganador."})
     
 
 

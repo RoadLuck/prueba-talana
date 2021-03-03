@@ -5,7 +5,7 @@
     <body>
         <p>Bienvenido {{first_name}} {{last_name}}</p>
         <p>Tu correo {{email}} ha sido registrado en nuestra plataforma Proyecto.</p>
-        <p>Para finalizar tu registro haz click <a href="http://localhos:8000/?token={{token}}">Aqui</a> </p>
+        <p>Para finalizar tu registro haz inserte tu token como X-TOKEN: {{token}} al endpoint: http://127.0.0.1:8000/api/v1/accounts/verify_user/ </p>
         <br>
         <p>Atentamente Soporte Proyecto</p>
     </body>
