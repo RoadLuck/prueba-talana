@@ -1,6 +1,5 @@
 import string
 import random
-from django.conf import settings
 
 from rest_framework.viewsets import ModelViewSet, ViewSet
 from random import randrange
@@ -9,11 +8,9 @@ from rest_framework.decorators import api_view
 from rest_framework.views import APIView
 from rest_framework import status, permissions,filters
 from rest_framework.response import Response
-from django.template.loader import get_template
 
-from django.core import mail
-from django.core.mail import EmailMultiAlternatives
 
+from accounts.tasks import send_feedback_email_task
 from accounts.api import serializers
 from accounts.models import Token, User
 
@@ -22,24 +19,7 @@ def random_token(stringLength):
     letters = string.ascii_lowercase
     return ''.join(random.choice(letters) for i in range(stringLength))
 
-def send_email(correo, first_name, last_name, token):
-    context = {'email': correo, 'first_name':first_name, 'last_name':last_name, 'token': token}
 
-    template = get_template('email_verification.html')
-    content = template.render(context)
-    connection = mail.get_connection()
-    connection.open()
-
-    email = EmailMultiAlternatives(
-        'Bienvenido a Proyecto',
-        'Verificación de Cuenta',
-        settings.DEFAULT_FROM_EMAIL,
-        [correo],
-        connection=connection
-    )
-    email.attach_alternative(content, 'text/html')
-    connection.send_messages([email])
-    connection.close()
     
 
 class UserCreateApiView(ModelViewSet):
@@ -58,8 +38,8 @@ class UserCreateApiView(ModelViewSet):
         token_gen = random_token(99)
         token = Token(user=user, token= token_gen)
         token.save()
-        #TODO: Integrar Celerys.
-        send_email(serializer['email'].value, serializer['first_name'].value, serializer['last_name'].value, token_gen)
+        # TODO: Probar Implementación
+        send_feedback_email_task.delay(serializer['email'].value, serializer['first_name'].value, serializer['last_name'].value, token_gen)
         headers = self.get_success_headers(serializer.data)
         return Response({"completado":"Verifique su cuenta en el correo electronico.", "user":serializer.data, "token": token_gen}, status=status.HTTP_201_CREATED, headers=headers)
  
@@ -70,7 +50,7 @@ def verify_account(request):
         token = request.META['HTTP_X_TOKEN']
         if Token.objects.filter(token=token).exists():
             serializer = serializers.UsersRegisterSerializer(data=request.data)  
-            result = serializer.is_valid(raise_exception=True)
+            serializer.is_valid(raise_exception=True)
             user = Token.objects.get(token=token).user
             user.verificate = True
             password = serializer.validated_data['password']

@@ -42,6 +42,19 @@ else:
     EMAIL_USE_SSL = True
     DEFAULT_FROM_EMAIL = 'no-reply@example.cl'
 
+# Celery settings
+
+BROKER_URL = 'amqp://user:123456@localhost:5672/myvhost'
+
+#: Only add pickle to this list if your broker is secured
+#: from unwanted access (see userguide/security.html)
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_BACKEND = 'db+sqlite:///results.sqlite'
+
+CELERY_TIMEZONE = "America/Santiago"
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60
 
 
 # Application definition
