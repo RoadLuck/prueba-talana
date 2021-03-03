@@ -16,6 +16,9 @@ Register User:
 Active Account:
     POST: Permite al desarrollador, activar la cuenta y establecer la contraseña, enviando mediante el header "x-token", y en el body adjuntar la contraseña para poder activar el usuario.
         "http://127.0.0.1:8000/api/v1/accounts/verify_user/"
+        {
+        "password": "password",
+        }
 
 
 Generate Winner:
