@@ -69,11 +69,11 @@ def verify_account(request):
     if request.method == 'POST':
         token = request.META['HTTP_X_TOKEN']
         if Token.objects.filter(token=token).exists():
-            password = request.data['password']
             serializer = serializers.UsersRegisterSerializer(data=request.data)  
-            serializer.is_valid(raise_exception=True)
+            result = serializer.is_valid(raise_exception=True)
             user = Token.objects.get(token=token).user
             user.verificate = True
+            password = serializer.validated_data['password']
             user.set_password(password)
             user.save()
             token_obj = Token.objects.get(token=token)
